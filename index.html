@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfraScan - System Monitor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+        
+        .controls {
+            padding: 20px 30px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        .metrics {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(0, 123, 255, 0.5);
+            box-shadow: 0 12px 40px rgba(0, 123, 255, 0.2);
+        }
+        
+        .metric-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #000000;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .metric-details {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+        
+        .process-list {
+            margin-top: 15px;
+        }
+        
+        .process-item {
+            display: flex;
+            justify-content: between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .process-name {
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .process-usage {
+            color: #000000;
+            font-weight: 600;
+        }
+        
+        .timestamp {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .status-good { color: #4caf50; text-shadow: 0 0 15px rgba(76, 175, 80, 0.3); }
+        .status-warning { color: #ff9800; text-shadow: 0 0 15px rgba(255, 152, 0, 0.3); }
+        .status-danger { color: #f44336; text-shadow: 0 0 15px rgba(244, 67, 54, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖥️ InfraScan</h1>
+            <p>Real-time System Health Monitoring</p>
+        </div>
+        
+        <div class="controls">
+            <button onclick="refreshMetrics()">🔄 Refresh Now</button>
+            <button onclick="exportCSV()">📊 Export CSV</button>
+            <button onclick="toggleAutoRefresh()">⚡ Auto Refresh: <span id="autoStatus">OFF</span></button>
+        </div>
+        
+        <div class="metrics" id="metrics">
+            <div class="loading">
+                📡 Loading system metrics...
+            </div>
+        </div>
+        
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+        
+        async function refreshMetrics() {
+            try {
+                const response = await fetch('/metrics');
+                const data = await response.json();
+                displayMetrics(data);
+                updateTimestamp(data.timestamp);
+            } catch (error) {
+                console.error('Error fetching metrics:', error);
+                document.getElementById('metrics').innerHTML = '<div class="loading">❌ Error loading metrics</div>';
+            }
+        }
+        
+        function displayMetrics(data) {
+            const metricsHtml = `
+                <div class="metric-card">
+                    <div class="metric-title">💻 CPU Usage</div>
+                    <div class="metric-value">${data.cpu.cpu_percent}%</div>
+                    <div class="metric-details">
+                        ${data.cpu.cpu_count} cores available
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">🧠 Memory</div>
+                    <div class="metric-value">${data.memory.percent}%</div>
+                    <div class="metric-details">
+                        ${data.memory.used_gb}GB / ${data.memory.total_gb}GB used<br>
+                        ${data.memory.available_gb}GB available
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">💾 Disk Space</div>
+                    <div class="metric-value">${data.disk.percent}%</div>
+                    <div class="metric-details">
+                        ${data.disk.used_gb}GB / ${data.disk.total_gb}GB used<br>
+                        ${data.disk.free_gb}GB free
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">🌐 Network</div>
+                    <div class="metric-value ${data.network.latency_ms ? (data.network.latency_ms < 50 ? 'status-good' : data.network.latency_ms < 100 ? 'status-warning' : 'status-danger') : 'status-danger'}">
+                        ${data.network.latency_ms ? data.network.latency_ms + 'ms' : 'Failed'}
+                    </div>
+                    <div class="metric-details">
+                        Status: ${data.network.status}
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">⚡ Processes</div>
+                    <div class="metric-value">${data.processes.total_processes}</div>
+                    <div class="metric-details">
+                        ${data.processes.active_processes} active processes
+                        
+                        <div class="process-list">
+                            <strong>Top Memory:</strong>
+                            ${data.processes.top_memory.slice(0, 3).map(proc => `
+                                <div class="process-item">
+                                    <span class="process-name">${proc.name}</span>
+                                    <span class="process-usage">${proc.memory_percent}%</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('metrics').innerHTML = metricsHtml;
+        }
+        
+        function updateTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            document.getElementById('timestamp').innerHTML = `
+                📅 Last updated: ${date.toLocaleString()}
+            `;
+        }
+        
+        async function exportCSV() {
+            try {
+                const response = await fetch('/export/csv');
+                const data = await response.json();
+                
+                const blob = new Blob([data.csv_data], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = data.filename;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Error exporting CSV:', error);
+                alert('Error exporting CSV');
+            }
+        }
+        
+        function toggleAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                document.getElementById('autoStatus').textContent = 'OFF';
+            } else {
+                autoRefreshInterval = setInterval(refreshMetrics, 5000); // Refresh every 5 seconds
+                document.getElementById('autoStatus').textContent = 'ON';
+            }
+        }
+        
+        // Load metrics on page load
+        refreshMetrics();
+    </script>
+</body>
+</html>
