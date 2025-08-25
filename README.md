@@ -12,6 +12,10 @@ InfraScan is a comprehensive system monitoring utility that showcases modern Dev
 
 **Why InfraScan?** This project demonstrates practical DevOps skills that are directly applicable to production environments - system monitoring, API design, automation scripting, and user-friendly dashboards.
 
+
+[![InfraScan Demo](infrascan.png)]https://www.linkedin.com/posts/zechariah-copeland-b3b4b1199_python-fastapi-devops-activity-7365576031434366976-eVw8?utm_source=share&utm_medium=member_desktop&rcm=ACoAAC6GiB8Bd-QYcYxr6ARygbrSjm8Cbbv4tGY)
+
+
 ## ✨ Key Features
 
 ### 🔍 **Comprehensive System Monitoring**
