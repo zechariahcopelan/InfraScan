@@ -53,7 +53,7 @@ InfraScan is a comprehensive system monitoring utility that showcases modern Dev
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/infrascan.git
+git clone https://github.com/zechariahcopelan/infrascan.git
 cd infrascan
 
 # Create virtual environment
